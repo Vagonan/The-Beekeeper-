@@ -347,7 +347,7 @@ function BroodHoneyGrid({hive,levelData,size}){
     const ld=levelData[origIdx]||{};
     const midY=yOff+hh*0.5;
     yOff+=hh;
-    return{midY,brood:ld.brood,honey:ld.honey,bU:ld.broodUnchecked===true,hU:ld.honeyUnchecked===true};
+    return{midY,brood:ld.brood,honey:ld.honey,bU:ld.broodUnchecked===true,hU:ld.honeyUnchecked===true,bA:ld.broodApprox===true,hA:ld.honeyApprox===true};
   });
 
   const colW=22;
@@ -363,8 +363,8 @@ function BroodHoneyGrid({hive,levelData,size}){
       transform:"translateY(-50%)",
       width:colW*2+6,display:"flex",gap:6
     }},
-      div({style:{width:colW,textAlign:"center",fontSize:12,fontWeight:700,color:G.bark,textDecoration:r.bU?"underline":"none"}},(r.brood&&+r.brood>0)?r.brood:"—"),
-      div({style:{width:colW,textAlign:"center",fontSize:12,fontWeight:700,color:G.amber,textDecoration:r.hU?"underline":"none"}},(r.honey&&+r.honey>0)?r.honey:"—")
+      div({style:{width:colW,textAlign:"center",fontSize:12,fontWeight:700,color:G.bark,textDecoration:r.bU?"underline":"none",fontStyle:r.bA?"italic":"normal"}},(r.brood&&+r.brood>0)?(r.bA?"~"+r.brood:r.brood):"—"),
+      div({style:{width:colW,textAlign:"center",fontSize:12,fontWeight:700,color:G.amber,textDecoration:r.hU?"underline":"none",fontStyle:r.hA?"italic":"normal"}},(r.honey&&+r.honey>0)?(r.hA?"~"+r.honey:r.honey):"—")
     ))
   )
 }
@@ -791,9 +791,9 @@ function HiveCardInner({hive,inspections,hives,nucParentHive,onSelect,selected})
         if(!last5.length)return div({style:{width:96,flexShrink:0}});
         const W=9,N=5;
         const hivLevels=hive.levels||[];
-        const hasManyLevels=hivLevels.length>0;
-        // Build rows: one per level if levelData exists, else single row
-        const rows=hasManyLevels?hivLevels.map((lv,li)=>({lv,li})):[{lv:null,li:-1}];
+        const hasManyLevels=hivLevels.length>1;
+        // Each level maps directly to levelData by index
+        const rows=hivLevels.length>0?hivLevels.map((lv,li)=>({lv,li})):[{lv:null,li:-1}];
         return div({style:{width:96,flexShrink:0,display:"flex",flexDirection:"column",justifyContent:"center",gap:1}},
           div({style:{display:"flex",alignItems:"center",borderBottom:"1px solid "+G.waxDark+"44",paddingBottom:1,marginBottom:1}},
             div({style:{width:5*W,textAlign:"center",fontSize:9}},"\ud83e\udd5a"),
@@ -802,24 +802,25 @@ function HiveCardInner({hive,inspections,hives,nucParentHive,onSelect,selected})
           ),
           ...rows.map(({lv,li})=>{
             const vals=[...last5].reverse().map(insp=>{
-              let b="",hn="",bU=false,hnU=false;
+              let b="",hn="",bU=false,hnU=false,bA=false,hnA=false;
               if(li>=0&&insp.levelData&&insp.levelData[li]){
                 const ld=insp.levelData[li];
                 b=(ld.brood)||""; hn=(ld.honey)||"";
                 bU=ld.broodUnchecked; hnU=ld.honeyUnchecked;
+                bA=ld.broodApprox; hnA=ld.honeyApprox;
               } else if(li<0){
                 b=insp.brood||""; hn=insp.honey||"";
                 bU=insp.broodUnchecked; hnU=insp.honeyUnchecked;
               }
-              return{b,hn,bU,hnU};
+              return{b,hn,bU,hnU,bA,hnA};
             });
             const padded=Array.from({length:N},(_,i)=>vals[i-(N-vals.length)]||null);
             const hasData=padded.some(v=>v&&(v.b||v.hn));
             if(!hasData&&hasManyLevels)return null;
             return div({key:li,style:{display:"flex",alignItems:"center",borderTop:li>0?"1px solid "+G.waxDark+"22":"none"}},
-              ...padded.map((v,vi)=>{const isLat=vi===N-1;return span({key:"b"+vi,style:{width:W,textAlign:"center",fontSize:isLat?10:8,fontWeight:isLat?800:400,color:v&&v.b?(isLat?G.bark:G.bark+"66"):G.textLight+"22",display:"inline-block",textDecoration:(v&&v.bU)?"underline":"none"}},v?v.b||"\u00b7":"\u00b7");}),
+              ...padded.map((v,vi)=>{const isLat=vi===N-1;const txt=v?(v.bA?"~"+(v.b||""):v.b||"\u00b7"):"\u00b7";return span({key:"b"+vi,style:{width:W,textAlign:"center",fontSize:isLat?10:8,fontWeight:isLat?800:400,color:v&&v.b?(isLat?G.bark:G.bark+"66"):G.textLight+"22",display:"inline-block",fontStyle:v&&v.bA?"italic":"normal",textDecoration:(v&&v.bU)?"underline":"none"}},txt);}),
               div({style:{width:1,background:G.waxDark+"55",alignSelf:"stretch",margin:"0 1px"}}),
-              ...padded.map((v,vi)=>{const isLat=vi===N-1;return span({key:"h"+vi,style:{width:W,textAlign:"center",fontSize:isLat?10:8,fontWeight:isLat?800:400,color:v&&v.hn?(isLat?G.amber:G.amber+"66"):G.textLight+"22",display:"inline-block",textDecoration:(v&&v.hnU)?"underline":"none"}},v?v.hn||"\u00b7":"\u00b7");})
+              ...padded.map((v,vi)=>{const isLat=vi===N-1;const txt=v?(v.hnA?"~"+(v.hn||""):v.hn||"\u00b7"):"\u00b7";return span({key:"h"+vi,style:{width:W,textAlign:"center",fontSize:isLat?10:8,fontWeight:isLat?800:400,color:v&&v.hn?(isLat?G.amber:G.amber+"66"):G.textLight+"22",display:"inline-block",fontStyle:v&&v.hnA?"italic":"normal",textDecoration:(v&&v.hnU)?"underline":"none"}},txt);})
             );
           }).filter(Boolean),
           last?div({style:{textAlign:"center",fontSize:8,color:G.textLight,marginTop:2,opacity:.85,lineHeight:1}},fmtShort(last.date)):null
@@ -2233,7 +2234,7 @@ function InspStats({insps,hives}){
 }
 
 // InspLogPanel — chronological inspection log with per-day notes
-function InspLogPanel({hives,insps,onClose,asView,onSaveNote}){
+function InspLogPanel({hives,insps,onClose,asView,onSaveNote,fbSaveMisc,fbWatchMisc}){
   // Group inspections by date (unique dates)
   const byDate={};
   insps.forEach(insp=>{
@@ -2798,13 +2799,17 @@ function HiveHistory({hive,insps,hives,onEdit,onDelete,onNewInsp}){
 }
 
 // HarvestPanel — Τρύγος
-function HarvestPanel({hives,asView}){
+function HarvestPanel({hives,asView,fbSaveMisc,fbWatchMisc}){
   const [harvests,setHarvests]=useState(()=>{try{const v=localStorage.getItem("bk_harvests");return v?JSON.parse(v):[]}catch{return[]}});
-  const [form,setForm]=useState(null); // null or {id,date,entries:{hiveId:frames}}
+  const [form,setForm]=useState(null);
+  useEffect(()=>{
+    if(!fbWatchMisc)return;
+    return fbWatchMisc("harvests",data=>{setHarvests(data);});
+  },[fbWatchMisc]); // null or {id,date,entries:{hiveId:frames}}
   const [confirmDel,setConfirmDel]=useState(null);
   const [expandedId,setExpandedId]=useState(null);
 
-  const saveAll=next=>{setHarvests(next);try{localStorage.setItem("bk_harvests",JSON.stringify(next))}catch{}};
+  const saveAll=next=>{setHarvests(next);try{localStorage.setItem("bk_harvests",JSON.stringify(next))}catch{}if(fbSaveMisc)fbSaveMisc("harvests",next);};
 
   const openNew=()=>{
     const entries={};
@@ -3019,6 +3024,11 @@ function HelpPanel({asView}){
       {q:"Τι σημαίνουν οι στήλες ⇄🥚 και ⇄🍯;",a:"Δείχνουν πλαίσια εξισορρόπησης: +αριθμός = πήρε, -αριθμός = έδωσε."},
       {q:"Πώς φιλτράρω ανά ημερομηνία;",a:"Μέσα στη σύνοψη υπάρχει εύρος ημερομηνιών. Συμπλήρωσε Από/Έως για να δεις συγκεκριμένη περίοδο."},
     ]},
+    {id:"harvest",title:"🍯 Τρύγος",content:[
+      {q:"Πώς καταγράφω τρύγο;",a:"Πάτα 🍯 Τρύγος από το nav → + Νέος Τρύγος. Επίλεξε ημερομηνία και βάλε αριθμό πλαισίων για κάθε κυψέλη με τα +/- κουμπιά. Πάτα 💾 Αποθήκευση."},
+      {q:"Πώς βλέπω σύνολα;",a:"Κάθε τρύγος δείχνει σύνολο πλαισίων ανά τοποθεσία και γενικό σύνολο. Επίσης δείχνει πόσες κυψέλες τρυγήθηκαν από το σύνολο (π.χ. 7 / 9 κυψέλες)."},
+      {q:"Πώς επεξεργάζομαι ή διαγράφω τρύγο;",a:"Σύρε (swipe) αριστερά για διαγραφή ή δεξιά για επεξεργασία. Μπορείς επίσης να πατήσεις πάνω στον τρύγο για να δεις τις λεπτομέρειες."},
+    ]},
     {id:"insplog",title:"📅 Ημερολόγιο Επιθεωρήσεων",content:[
       {q:"Τι είναι το Ημερολόγιο;",a:"Χρονολογική λίστα όλων των επιθεωρήσεων ανά ημέρα με τα σύμβολα των κυψελών που επιθεωρήθηκαν."},
       {q:"Πώς προσθέτω σημείωση ημέρας;",a:"Πάτα ✏️ ή + Σημείωση δίπλα στην ημέρα. Γράψε την παρατήρηση και πάτα ✓ για αποθήκευση."},
@@ -3058,7 +3068,7 @@ function HelpPanel({asView}){
 }
 
 // FinancePanel
-function FinancePanel({onClose,asView}){
+function FinancePanel({onClose,asView,fbSaveMisc,fbWatchMisc}){
   const [tab,setTab]=useState("income");
   const [records,setRecords]=useState(()=>{try{const v=localStorage.getItem("bk_finance");return v?JSON.parse(v):[]}catch{return[]}});
   const [cats,setCats]=useState(()=>{try{const v=localStorage.getItem("bk_finance_cats");return v?JSON.parse(v):{income:[],expense:[]}}catch{return{income:[],expense:[]}}});
@@ -3067,18 +3077,24 @@ function FinancePanel({onClose,asView}){
   const [newCat,setNewCat]=useState("");
   const [addingCat,setAddingCat]=useState(false);
 
-  const saveCats=next=>{setCats(next);try{localStorage.setItem("bk_finance_cats",JSON.stringify(next))}catch{}};
+  const saveCats=next=>{setCats(next);try{localStorage.setItem("bk_finance_cats",JSON.stringify(next))}catch{}if(fbSaveMisc)fbSaveMisc("finance_cats",next);};
+  useEffect(()=>{
+    if(!fbWatchMisc)return;
+    const u1=fbWatchMisc("finance",data=>{setRecords(data);});
+    const u2=fbWatchMisc("finance_cats",data=>{setCats(data);});
+    return ()=>{u1&&u1();u2&&u2();};
+  },[fbWatchMisc]);
   const addCat=()=>{if(!newCat.trim())return;saveCats({...cats,[tab]:[...cats[tab],newCat.trim()]});setNewCat("");setAddingCat(false);};
   const delCat=c=>saveCats({...cats,[tab]:cats[tab].filter(x=>x!==c)});
 
   const saveRec=r=>{
     const next=form.id?records.map(x=>x.id===form.id?r:x):[...records,Object.assign({},r,{id:Date.now()+"",type:tab})];
-    setRecords(next);try{localStorage.setItem("bk_finance",JSON.stringify(next))}catch{}
+    setRecords(next);try{localStorage.setItem("bk_finance",JSON.stringify(next))}catch{}if(fbSaveMisc)fbSaveMisc("finance",next);
     setForm(null);
   };
   const delRec=id=>{
     const next=records.filter(x=>x.id!==id);
-    setRecords(next);try{localStorage.setItem("bk_finance",JSON.stringify(next))}catch{}
+    setRecords(next);try{localStorage.setItem("bk_finance",JSON.stringify(next))}catch{}if(fbSaveMisc)fbSaveMisc("finance",next);
     setConfirmDel(null);
   };
 
@@ -3254,7 +3270,9 @@ function AuthScreen({onAuth}){
 
   const submit=async()=>{
     setErr(""); setLoading(true);
-    if(!initFirebase()){setErr("Δεν φορτώθηκε η σύνδεση. Δοκίμασε ξανά.");setLoading(false);return;}
+    let tries=0;
+    while(!initFirebase()&&tries<20){await new Promise(r=>setTimeout(r,200));tries++;}
+    if(!fbAuth){setErr("Δεν φορτώθηκε η σύνδεση. Δοκίμασε ξανά.");setLoading(false);return;}
     try{
       if(mode==="login"){
         await fbAuth.signInWithEmailAndPassword(email,pass);
@@ -3324,8 +3342,10 @@ function GroupScreen({user,onGroup}){
 
   const createGroup=async()=>{
     if(!groupName.trim())return;
-    if(!initFirebase()){setErr("Δεν φορτώθηκε η σύνδεση.");return;}
     setLoading(true); setErr("");
+    let tries=0;
+    while(!initFirebase()&&tries<20){await new Promise(r=>setTimeout(r,200));tries++;}
+    if(!fbDb){setErr("Δεν φορτώθηκε η σύνδεση. Δοκίμασε ξανά.");setLoading(false);return;}
     try{
       const code=Math.random().toString(36).slice(2,8).toUpperCase();
       const ref=await fbDb.collection("groups").add({
@@ -3335,7 +3355,7 @@ function GroupScreen({user,onGroup}){
         createdAt:new Date().toISOString(),
         members:{[user.uid]:{name:user.displayName||user.email,email:user.email,role:"admin",joinedAt:new Date().toISOString()}}
       });
-      await fbDb.collection("users").doc(user.uid).update({groupId:ref.id,groupRole:"admin"});
+      await fbDb.collection("users").doc(user.uid).set({groupId:ref.id,groupRole:"admin"},{merge:true});
       onGroup(ref.id,"admin");
     }catch(e){setErr(e.message);}
     setLoading(false);
@@ -3343,14 +3363,17 @@ function GroupScreen({user,onGroup}){
 
   const joinGroup=async()=>{
     if(!inviteCode.trim())return;
-    if(!initFirebase()){setErr("Δεν φορτώθηκε η σύνδεση.");return;}
     setLoading(true); setErr("");
+    // Wait for Firebase to init
+    let tries=0;
+    while(!initFirebase()&&tries<20){await new Promise(r=>setTimeout(r,200));tries++;}
+    if(!fbDb){setErr("Δεν φορτώθηκε η σύνδεση. Δοκίμασε ξανά.");setLoading(false);return;}
     try{
       const snap=await fbDb.collection("groups").where("code","==",inviteCode.trim().toUpperCase()).get();
       if(snap.empty){setErr("Δεν βρέθηκε ομάδα με αυτόν τον κωδικό.");setLoading(false);return;}
       const groupDoc=snap.docs[0];
       await groupDoc.ref.update({[`members.${user.uid}`]:{name:user.displayName||user.email,email:user.email,role:"viewer",joinedAt:new Date().toISOString()}});
-      await fbDb.collection("users").doc(user.uid).update({groupId:groupDoc.id,groupRole:"viewer"});
+      await fbDb.collection("users").doc(user.uid).set({groupId:groupDoc.id,groupRole:"viewer"},{merge:true});
       onGroup(groupDoc.id,"viewer");
     }catch(e){setErr(e.message);}
     setLoading(false);
@@ -3448,13 +3471,22 @@ function App(){
         setAuthUser(u||null);
         if(u){
           try{
-            const userDoc=await fbDb.collection("users").doc(u.uid).get();
-            if(userDoc.exists&&userDoc.data().groupId){
-              setGroupId(userDoc.data().groupId);
-              setGroupRole(userDoc.data().groupRole||"viewer");
+            // Always scan all groups to find correct one for this user
+            const allGroups=await fbDb.collection("groups").get();
+            let bestGroupId=null,bestRole="viewer";
+            for(const g of allGroups.docs){
+              const data=g.data();
+              if(data.owner===u.uid){bestGroupId=g.id;bestRole="admin";break;}
+              if(data.members&&data.members[u.uid]&&!bestGroupId){
+                bestGroupId=g.id;bestRole=data.members[u.uid].role||"viewer";
+              }
+            }
+            if(bestGroupId){
+              await fbDb.collection("users").doc(u.uid).set({groupId:bestGroupId,groupRole:bestRole},{merge:true});
+              setGroupId(bestGroupId);
+              setGroupRole(bestRole);
             } else {
-              setGroupId(null);
-              setGroupRole(null);
+              setGroupId(null);setGroupRole(null);
             }
           }catch(e){console.error(e);}
         } else {
@@ -3471,7 +3503,14 @@ function App(){
     if(!groupId)return;
     if(!initFirebase())return;
     return fbDb.collection("groups").doc(groupId).onSnapshot(snap=>{
-      if(snap.exists)setGroupInfo(snap.data());
+      if(snap.exists){
+        setGroupInfo(snap.data());
+        // Update role real-time if changed
+        if(authUser&&snap.data().members&&snap.data().members[authUser.uid]){
+          const newRole=snap.data().members[authUser.uid].role||"viewer";
+          setGroupRole(newRole);
+        }
+      }
     });
   },[groupId]);
 
@@ -3501,65 +3540,96 @@ function App(){
 }
 
 function AppMain({groupId,groupRole,isViewer,authUser,groupInfo,onSignOut}){
-  const offline=!groupId||typeof firebase==="undefined";
-  const [hives,setHR]=useState(()=>{
-    if(!groupId||typeof firebase==="undefined"){
-      initLS();
-      const hv=lsGet("bk_hives");
-      return hv.map(h=>{
-        if(!h.levels||h.levels.length===0)return h;
-        const needsMigration=h.levels.some(l=>!l.type||!l.maxFrames);
-        if(!needsMigration)return h;
-        const newLevels=h.levels.map((l,i)=>{
-          const defaultMax=h.langstrothSize?parseInt(h.langstrothSize)||10:10;
-          const t=l.type||(l.isFloor===true?'floor':(l.isFloor===false?'roof':(i===0?'floor':'roof')));
-          return Object.assign({},l,{type:t,maxFrames:l.maxFrames||defaultMax,frames:l.frames||"",symbolShape:t==='floor'?(l.symbolShape||(i===0?h.symbolShape||'Κύκλος':l.symbolShape||'Κύκλος')):(l.symbolShape||''),symbolColor:t==='floor'?(l.symbolColor||(i===0?h.symbolColor||'':l.symbolColor||'')):(l.symbolColor||''),symbolNumber:t==='floor'?(l.symbolNumber||(i===0?h.symbolNumber||'':l.symbolNumber||'')):(l.symbolNumber||'')});
-        });
-        return Object.assign({},h,{levels:newLevels});
-      });
-    }
-    return [];
-  });
-  const [insps,setIR]=useState(()=>(!groupId||typeof firebase==="undefined")?lsGet("bk_insps"):[]);
-  const [dbLoaded,setDbLoaded]=useState(false);
-  const [syncMsg,setSyncMsg]=useState("");
+  const groupIdRef=useRef(groupId);
+  groupIdRef.current=groupId; // Always sync, not just on change
 
-  // Real-time sync from Firestore
+  // State
+  const [hives,setHR]=useState(()=>groupId?[]:lsGet("bk_hives").map(h=>{
+    if(!h.levels||h.levels.length===0)return h;
+    const needsMigration=h.levels.some(l=>!l.type||!l.maxFrames);
+    if(!needsMigration)return h;
+    const newLevels=h.levels.map((l,i)=>{
+      const defaultMax=h.langstrothSize?parseInt(h.langstrothSize)||10:10;
+      const t=l.type||(l.isFloor===true?'floor':(l.isFloor===false?'roof':(i===0?'floor':'roof')));
+      return Object.assign({},l,{type:t,maxFrames:l.maxFrames||defaultMax,frames:l.frames||"",symbolShape:t==='floor'?(l.symbolShape||(i===0?h.symbolShape||'Κύκλος':l.symbolShape||'Κύκλος')):'',symbolColor:t==='floor'?(l.symbolColor||(i===0?h.symbolColor||'':l.symbolColor||'')):'',symbolNumber:t==='floor'?(l.symbolNumber||(i===0?h.symbolNumber||'':l.symbolNumber||'')):'',});
+    });
+    return Object.assign({},h,{levels:newLevels});
+  }));
+  const [insps,setIR]=useState(()=>groupId?[]:lsGet("bk_insps"));
+  const [syncMsg,setSyncMsg]=useState("");
+  const [dbLoaded,setDbLoaded]=useState(false);
+  const [showMembers,setShowMembers]=useState(false);
+
+  const fbSaveMisc=async(key,data)=>{
+    const gid=groupIdRef.current;
+    const db=fbDb;
+    if(!gid||!db)return;
+    try{await db.collection("groups").doc(gid).collection("misc").doc(key).set({data:JSON.stringify(data),updatedAt:new Date().toISOString()});}catch(e){console.error("fbSaveMisc",e);}
+  };
+  const fbWatchMisc=(key,cb)=>{
+    const gid=groupIdRef.current;
+    const db=fbDb;
+    if(!gid||!db)return ()=>{};
+    return db.collection("groups").doc(gid).collection("misc").doc(key)
+      .onSnapshot(snap=>{if(snap.exists&&snap.data().data){try{cb(JSON.parse(snap.data().data));}catch{}}});
+  };
+
+  // Firestore real-time sync
   useEffect(()=>{
     if(!groupId)return;
     if(!initFirebase())return;
     const unsub1=fbDb.collection("groups").doc(groupId).collection("hives")
-      .onSnapshot(snap=>{
-        setHR(snap.docs.map(d=>({id:d.id,...d.data()})));
+      .onSnapshot(async snap=>{
+        const fbHives=snap.docs.map(d=>({id:d.id,...d.data()}));
+        if(fbHives.length===0){
+          const lsHives=lsGet("bk_hives");
+          if(lsHives&&lsHives.length>0){
+            for(const hive of lsHives)
+              await fbDb.collection("groups").doc(groupId).collection("hives").doc(hive.id).set(hive);
+            return;
+          }
+        }
+        setHR(fbHives);
         setDbLoaded(true);
       });
     const unsub2=fbDb.collection("groups").doc(groupId).collection("insps")
-      .onSnapshot(snap=>{
-        setIR(snap.docs.map(d=>({id:d.id,...d.data()})));
+      .onSnapshot(async snap=>{
+        const fbInsps=snap.docs.map(d=>({id:d.id,...d.data()}));
+        if(fbInsps.length===0){
+          const lsInsps=lsGet("bk_insps");
+          if(lsInsps&&lsInsps.length>0){
+            for(const insp of lsInsps)
+              await fbDb.collection("groups").doc(groupId).collection("insps").doc(insp.id).set(insp);
+            return;
+          }
+        }
+        setIR(fbInsps);
       });
     return ()=>{unsub1();unsub2();};
   },[groupId]);
 
   const fbSave=async(col,id,data)=>{
-    setSyncMsg("💾");
+    const gid=groupIdRef.current;
+    if(!gid){setSyncMsg("\u26a0\ufe0f no gid");setTimeout(()=>setSyncMsg(""),4000);return;}
+    if(!fbDb){setSyncMsg("\u26a0\ufe0f no db");setTimeout(()=>setSyncMsg(""),4000);return;}
+    setSyncMsg("\ud83d\udcbe "+gid.slice(0,6));
     try{
-      await fbDb.collection("groups").doc(groupId).collection(col).doc(id).set(data);
-      setSyncMsg("✓");setTimeout(()=>setSyncMsg(""),2000);
-    }catch(e){setSyncMsg("⚠️ "+e.message);}
-  };
-  const fbDel=async(col,id)=>{
-    try{await fbDb.collection("groups").doc(groupId).collection(col).doc(id).delete();}catch{}
+      await fbDb.collection("groups").doc(gid).collection(col).doc(id).set(data);
+      setSyncMsg("\u2713 OK");setTimeout(()=>setSyncMsg(""),3000);
+    }catch(e){setSyncMsg("\u26a0\ufe0f "+e.message.slice(0,20));setTimeout(()=>setSyncMsg(""),5000);}
+  };  const fbDel=async(col,id)=>{
+    const gid=groupIdRef.current;
+    if(!gid||!fbDb)return;
+    try{await fbDb.collection("groups").doc(gid).collection(col).doc(id).delete();}catch{}
   };
 
   const setH=u=>{
     if(isViewer)return;
     setHR(p=>{
       const n=typeof u==="function"?u(p):u;
-      if(offline){lsSet("bk_hives",n);}
-      else{
-        n.forEach(hive=>{const old=p.find(x=>x.id===hive.id);if(!old||JSON.stringify(old)!==JSON.stringify(hive))fbSave("hives",hive.id,hive);});
-        p.forEach(hive=>{if(!n.find(x=>x.id===hive.id))fbDel("hives",hive.id);});
-      }
+      lsSet("bk_hives",n);
+      n.forEach(hive=>{const old=p.find(x=>x.id===hive.id);if(!old||JSON.stringify(old)!==JSON.stringify(hive))fbSave("hives",hive.id,hive);});
+      p.forEach(hive=>{if(!n.find(x=>x.id===hive.id))fbDel("hives",hive.id);});
       return n;
     });
   };
@@ -3567,11 +3637,9 @@ function AppMain({groupId,groupRole,isViewer,authUser,groupInfo,onSignOut}){
     if(isViewer)return;
     setIR(p=>{
       const n=typeof u==="function"?u(p):u;
-      if(offline){lsSet("bk_insps",n);}
-      else{
-        n.forEach(insp=>{const old=p.find(x=>x.id===insp.id);if(!old||JSON.stringify(old)!==JSON.stringify(insp))fbSave("insps",insp.id,insp);});
-        p.forEach(insp=>{if(!n.find(x=>x.id===insp.id))fbDel("insps",insp.id);});
-      }
+      lsSet("bk_insps",n);
+      n.forEach(insp=>{const old=p.find(x=>x.id===insp.id);if(!old||JSON.stringify(old)!==JSON.stringify(insp))fbSave("insps",insp.id,insp);});
+      p.forEach(insp=>{if(!n.find(x=>x.id===insp.id))fbDel("insps",insp.id);});
       return n;
     });
   };
@@ -3587,7 +3655,11 @@ function AppMain({groupId,groupRole,isViewer,authUser,groupInfo,onSignOut}){
   const [globalCustom,setGlobalCustomRaw]=useState(()=>{try{const v=localStorage.getItem("bk_custom_actions");return v?JSON.parse(v):{}}catch{return{}}});
   const setGlobalCustom=fn=>{setGlobalCustomRaw(p=>{const next=typeof fn==="function"?fn(p):fn;try{localStorage.setItem("bk_custom_actions",JSON.stringify(next))}catch{}return next;});};
   const [inspLogNotes,setInspLogNotes]=useState(()=>{try{const v=localStorage.getItem("bk_insp_notes");return v?JSON.parse(v):{}}catch{return{}}});
-  useEffect(()=>{try{localStorage.setItem("bk_insp_notes",JSON.stringify(inspLogNotes))}catch{}},[inspLogNotes]);
+  useEffect(()=>{
+    if(!groupId||!fbWatchMisc)return;
+    return fbWatchMisc("inspNotes",data=>{setInspLogNotes(data);});
+  },[groupId]);
+  useEffect(()=>{try{localStorage.setItem("bk_insp_notes",JSON.stringify(inspLogNotes))}catch{}if(groupId&&fbSaveMisc)fbSaveMisc("inspNotes",inspLogNotes);},[inspLogNotes]);
   const cur=hives.find(h=>h.id===selH);
   const saveH=f=>{
     if(editH){
@@ -3642,9 +3714,11 @@ function AppMain({groupId,groupRole,isViewer,authUser,groupInfo,onSignOut}){
             view!=="dashboard"?btn({onClick:goBack,style:{background:G.honey+"22",border:`1px solid ${G.honey}44`,borderRadius:8,color:G.honeyLight,fontSize:16,width:28,height:28,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"←"):null,
             div({style:{display:"flex",flexDirection:"column"}},
               div({style:{fontSize:16,fontWeight:900,color:G.honeyLight,letterSpacing:-0.3}},"🍯 Μελισσοκομικό Ημερολόγιο"),
-              groupInfo?div({style:{fontSize:10,color:G.honey+"99",display:"flex",alignItems:"center",gap:6}},
+              groupInfo?div({style:{fontSize:10,color:G.honey+"99",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}},
                 span({},"👥 "+(groupInfo.name||"")),
                 span({style:{color:isViewer?"#fca5a5":"#86efac"}},(isViewer?"👁 Θεατής":"✏️ Admin")),
+                !isViewer&&groupInfo.code?span({style:{background:G.honey+"33",borderRadius:4,padding:"1px 5px",fontWeight:700,letterSpacing:1,color:G.honeyLight,cursor:"pointer"},onClick:()=>{try{navigator.clipboard.writeText(groupInfo.code);}catch{}alert("Κωδικός πρόσκλησης: "+groupInfo.code);}},"🔑 "+groupInfo.code):null,
+                !isViewer?btn({onClick:()=>setShowMembers(true),style:{background:"none",border:"none",cursor:"pointer",fontSize:12,color:G.honeyLight,padding:"0 2px"}},"👥"):null,
                 syncMsg?span({style:{color:"#86efac"}},syncMsg):null,
                 btn({onClick:onSignOut,style:{background:"none",border:"none",cursor:"pointer",fontSize:10,color:G.honey+"88",fontFamily:"Georgia,serif",padding:"0 0 0 4px"}},"↩")
               ):null
@@ -3710,7 +3784,7 @@ function AppMain({groupId,groupRole,isViewer,authUser,groupInfo,onSignOut}){
           h(HiveForm,{initial:editH,onSave:saveH,onDelete:editH?()=>delH(editH.id):null,onCancel:()=>{setShowHF(false);setEditH(null)}})
         )
       ):null,
-      (showIF||editI)&&cur?div({style:{marginBottom:20}},h(InspForm,{hiveName:cur.name,hiveSymbol:{shape:cur.symbolShape,color:cur.symbolColor,number:cur.symbolNumber},hiveLevels:cur.levels,hives,globalCustom,setGlobalCustom,hiveLangstrothSize:cur.langstrothSize,hiveData:cur,onSaveHive:updatedHive=>{const merged=Object.assign({},cur,updatedHive,{id:cur.id});setH(hv=>hv.map(h=>h.id===cur.id?merged:h));lsSet("bk_hives",hives.map(h=>h.id===cur.id?merged:h));},onEditHive:()=>{setShowIF(false);setEditH(cur);},onDeleteHive:()=>delH(cur.id),initial:editI,lastInsp:!editI?insps.filter(i=>i.hiveId===selH).sort((a,b)=>b.date.localeCompare(a.date))[0]:null,onSave:saveI,onCancel:()=>{setShowIF(false);setEditI(null)}})):null,
+      (showIF||editI)&&cur?div({style:{marginBottom:20}},h(InspForm,{hiveName:cur.name,hiveSymbol:{shape:cur.symbolShape,color:cur.symbolColor,number:cur.symbolNumber},hiveLevels:cur.levels,hives,globalCustom,setGlobalCustom,hiveLangstrothSize:cur.langstrothSize,hiveData:cur,onSaveHive:updatedHive=>{const merged=Object.assign({},cur,updatedHive,{id:cur.id});setH(hv=>hv.map(h=>h.id===cur.id?merged:h));},onEditHive:()=>{setShowIF(false);setEditH(cur);},onDeleteHive:()=>delH(cur.id),initial:editI,lastInsp:!editI?insps.filter(i=>i.hiveId===selH).sort((a,b)=>b.date.localeCompare(a.date))[0]:null,onSave:saveI,onCancel:()=>{setShowIF(false);setEditI(null)}})):null,
       // (Nav moved to header)
       // Dashboard
       view==="dashboard"?h(Fragment,null,
@@ -3766,12 +3840,51 @@ function AppMain({groupId,groupRole,isViewer,authUser,groupInfo,onSignOut}){
       view==="all"?h(InspStats,{insps,hives}):null,
       view==="queens"?h(QueenPanel,{hives,insps,onClose:()=>setView("dashboard"),asView:true}):null,
       view==="summary"?h(GlobalSummaryPanel,{hives,insps,onClose:()=>setView("dashboard"),asView:true}):null,
-      view==="log"?h(InspLogPanel,{hives,insps,onClose:()=>setView("dashboard"),asView:true,onSaveNote:(date,note)=>{setInspLogNotes(p=>({...p,[date]:note}));}}):null,
-      view==="finance"?h(FinancePanel,{onClose:()=>setView("dashboard"),asView:true}):null,
-      view==="harvest"?h(HarvestPanel,{hives,asView:true}):null,
+      view==="log"?h(InspLogPanel,{hives,insps,onClose:()=>setView("dashboard"),asView:true,fbSaveMisc,fbWatchMisc,onSaveNote:(date,note)=>{setInspLogNotes(p=>({...p,[date]:note}));}}):null,
+      view==="finance"?h(FinancePanel,{onClose:()=>setView("dashboard"),asView:true,fbSaveMisc,fbWatchMisc}):null,
+      view==="harvest"?h(HarvestPanel,{hives,asView:true,fbSaveMisc,fbWatchMisc}):null,
       view==="help"?h(HelpPanel,{asView:true}):null,
       // Single hive — summary + date filter + history
-      view==="hive"&&cur?h(HiveHistory,{hive:cur,insps,hives,onEdit:insp=>{setEditI(insp);setShowIF(false)},onDelete:delI,onNewInsp:()=>{setEditI(null);setShowIF(true);}}):null
+      view==="hive"&&cur?h(HiveHistory,{hive:cur,insps,hives,onEdit:insp=>{setEditI(insp);setShowIF(false)},onDelete:delI,onNewInsp:()=>{setEditI(null);setShowIF(true);}}):null,
+    // Members management modal
+    showMembers&&!isViewer&&groupInfo?div({style:{position:"fixed",inset:0,zIndex:800,background:"#0007",display:"flex",alignItems:"center",justifyContent:"center",padding:16}},
+      div({style:{background:G.white,borderRadius:16,padding:24,width:"100%",maxWidth:400,maxHeight:"80vh",overflowY:"auto"}},
+        div({style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}},
+          div({style:{fontWeight:900,fontSize:16,color:G.amber}},"👥 Μέλη Ομάδας"),
+          btn({onClick:()=>setShowMembers(false),style:{background:"none",border:"none",cursor:"pointer",fontSize:20,color:G.textLight}},"✕")
+        ),
+        ...Object.entries(groupInfo.members||{}).map(([uid,m])=>
+          div({key:uid,style:{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:"1px solid "+G.waxDark+"44"}},
+            div({style:{flex:1}},
+              div({style:{fontWeight:700,fontSize:14,color:G.text}},m.name||m.email),
+              div({style:{fontSize:11,color:G.textLight}},m.email)
+            ),
+            div({style:{display:"flex",gap:6,alignItems:"center"}},
+              span({style:{fontSize:11,color:m.role==="admin"?"#86efac":"#fca5a5",fontWeight:700}},m.role==="admin"?"✏️ Admin":"👁 Θεατής"),
+              uid!==authUser.uid?btn({
+                onTouchEnd:e=>{e.preventDefault();(async()=>{
+                  if(!initFirebase())return;
+                  const newRole=m.role==="admin"?"viewer":"admin";
+                  try{
+                    await fbDb.collection("groups").doc(groupId).update({[`members.${uid}.role`]:newRole});
+                    await fbDb.collection("users").doc(uid).set({groupRole:newRole},{merge:true});
+                  }catch(e){alert("Σφάλμα: "+e.message);}
+                })();},
+                onClick:()=>{(async()=>{
+                  if(!initFirebase())return;
+                  const newRole=m.role==="admin"?"viewer":"admin";
+                  try{
+                    await fbDb.collection("groups").doc(groupId).update({[`members.${uid}.role`]:newRole});
+                    await fbDb.collection("users").doc(uid).set({groupRole:newRole},{merge:true});
+                  }catch(e){alert("Σφάλμα: "+e.message);}
+                })();},
+                style:{padding:"4px 10px",borderRadius:8,border:"1px solid "+G.waxDark,background:G.wax,cursor:"pointer",fontSize:11,fontWeight:700,color:G.bark,fontFamily:"Georgia,serif",WebkitTapHighlightColor:"transparent"}
+              },m.role==="admin"?"→ Θεατής":"→ Admin"):span({style:{fontSize:10,color:G.textLight}},"(εσύ)")
+            )
+          )
+        )
+      )
+    ):null
     )
   )
 }
